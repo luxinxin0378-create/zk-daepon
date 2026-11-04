@@ -32,31 +32,40 @@
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# 兜底（默认注释）：仅当 TEST=true 后在 Config-*.txt 里搜不到 qmodem 时启用
+# 兜底 A（保持禁用）：仅当 TEST=true 后在 Config-*.txt 里搜不到 qmodem 时启用
 # 作用：把 QModem 的子包目录摊平到 package/ 顶层，强制被扫描到
-# ⚠️ 会连带引入 driver/ 下多个厂商驱动包，可能增大固件，非必要不启用
+# ⚠️ 会与 package/QModem/ 下同名包重复，可能让 defconfig 报重复定义，
+#    也会连带引入 driver/ 下多个厂商驱动包，非必要绝不启用。
+#
+# ✅ 2026-11-04 TEST 实测（Config-AIROHA-ONU-...23.39.29.txt）：
+#    CONFIG_PACKAGE_qmodem=y / luci-app-qmodem-next=y / luci-app-openclash=y
+#    全部已在 .config 中，QModem 源码本来就被 scan.mk 正常扫描到。
+#    之前「插件缺失」是核对脚本下载到资产元数据 JSON 导致的误判，已修复。
+#    因此这里必须保持注释状态。
 # ------------------------------------------------------------------------------
-if [ -d "./QModem" ]; then
-  for D in ./QModem/application/* ./QModem/luci/*; do
-    [ -d "$D" ] && cp -rf "$D" ./
-  done
-  echo "QModem packages flattened into package/ for scan.mk"
-fi
+# if [ -d "./QModem" ]; then
+#   for D in ./QModem/application/* ./QModem/luci/*; do
+#     [ -d "$D" ] && cp -rf "$D" ./
+#   done
+#   echo "QModem packages flattened into package/ for scan.mk"
+# fi
 
 # ------------------------------------------------------------------------------
-# 兜底 B（默认注释）：QModem 的 QMI 驱动选择
+# 兜底 B（已预防性启用）：QModem 的 QMI 驱动选择
 #
-# application/qmodem/Makefile 的 choice 里写的是：
-#   default PACKAGE_qmodem_INCLUDE_vendor-qmi-wwan
-# 即默认拉入厂商驱动 kmod-qmi_wwan_q / _f / _s（driver/ 目录下的第三方
-# 内核模块）。在 6.18.55 内核上这些源码模块可能编译失败。
-# 内核自带通用驱动 kmod-usb-net-qmi-wwan 已在 PRIVATE.txt 的 C3 启用，
-# 所以遇到厂商驱动报错时，取消下面这段注释，把默认改成 generic 即可：
+# TEST 生成的 .config 实测为：
+#   CONFIG_PACKAGE_qmodem_INCLUDE_vendor-qmi-wwan=y
+#   # CONFIG_PACKAGE_qmodem_INCLUDE_generic-qmi-wwan is not set
+# 即默认拉入厂商驱动 kmod-qmi_wwan_q / _f / _s（driver/ 下第三方内核模块）。
+# 这些模块在 6.18.55 上编译失败风险较高；而内核自带通用驱动
+# kmod-usb-net-qmi-wwan 已在 PRIVATE.txt 的 C3 显式启用，功能不缺失。
+# 故正式编译前直接把 choice 默认改成 generic，避免白跑 2~4 小时。
+# sed 不匹配时会静默跳过，无副作用。
 # ------------------------------------------------------------------------------
-# if [ -f "./QModem/application/qmodem/Makefile" ]; then
-#   sed -i 's/default PACKAGE_qmodem_INCLUDE_vendor-qmi-wwan/default PACKAGE_qmodem_INCLUDE_generic-qmi-wwan/' ./QModem/application/qmodem/Makefile
-#   echo "QModem: default QMI driver switched to generic kernel qmi_wwan"
-# fi
+if [ -f "./QModem/application/qmodem/Makefile" ]; then
+  sed -i 's/default PACKAGE_qmodem_INCLUDE_vendor-qmi-wwan/default PACKAGE_qmodem_INCLUDE_generic-qmi-wwan/' ./QModem/application/qmodem/Makefile
+  echo "QModem: default QMI driver switched to generic kernel qmi_wwan"
+fi
 
 # ------------------------------------------------------------------------------
 # 厂商驱动（按需）：QModem 仓库 driver/ 下自带 quectel_QMI_WWAN、
