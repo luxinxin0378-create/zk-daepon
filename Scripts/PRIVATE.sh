@@ -36,12 +36,12 @@
 # 作用：把 QModem 的子包目录摊平到 package/ 顶层，强制被扫描到
 # ⚠️ 会连带引入 driver/ 下多个厂商驱动包，可能增大固件，非必要不启用
 # ------------------------------------------------------------------------------
-# if [ -d "./QModem" ]; then
-#   for D in ./QModem/application/* ./QModem/luci/*; do
-#     [ -d "$D" ] && cp -rf "$D" ./
-#   done
-#   echo "QModem packages flattened into package/ for scan.mk"
-# fi
+if [ -d "./QModem" ]; then
+  for D in ./QModem/application/* ./QModem/luci/*; do
+    [ -d "$D" ] && cp -rf "$D" ./
+  done
+  echo "QModem packages flattened into package/ for scan.mk"
+fi
 
 # ------------------------------------------------------------------------------
 # 兜底 B（默认注释）：QModem 的 QMI 驱动选择
