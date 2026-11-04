@@ -1,0 +1,142 @@
+# ==============================================================================
+# zk-daepon 私有插件配置  |  Config/PRIVATE.txt
+# 由 Scripts/Settings.sh 第 64-67 行自动追加到 .config，发生在 make defconfig 之前
+# 因此这里写的符号会参与依赖解析
+#
+# 本次需求：OpenClash + QModem + USB 模组驱动
+#
+# 语法：每行一条 Kconfig 符号
+#   CONFIG_PACKAGE_xxx=y   编入固件
+#   CONFIG_PACKAGE_xxx=n   明确排除
+#   行首 #                 注释掉（不生效）
+#
+# 覆盖规则：Config/GENERAL.txt 先写入，本文件后写入，同名符号以本文件为准
+#
+# ⚠️ 包名不存在时 make defconfig 会静默丢弃，不报错也不进固件。
+#    务必先跑 TEST=true，下载 Config-*.txt 附件搜索包名确认后再正式编译。
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# A. OpenClash —— 源码 Packages.sh 第 60 行已拉取（vernesong/OpenClash, dev）
+#    原本 GENERAL.txt 没开启，这里置 y 即可，不需要动 PRIVATE.sh
+# ------------------------------------------------------------------------------
+CONFIG_PACKAGE_luci-app-openclash=y
+
+# ------------------------------------------------------------------------------
+# B. QModem —— 源码 Packages.sh 第 77 行已拉取（FUjr/QModem, main）
+#    整个仓库 clone 到 package/QModem/，其 luci Makefile 里的
+#    include ../../version.mk 正好指向仓库根，路径成立，不要改 PRIVATE.sh
+#
+#    核心包 qmodem；推荐界面 luci-app-qmodem-next（纯 JS）
+#    LUCI_DEPENDS 会自动带入 qmodem-smsd / sms-forwarder-next
+#    ⚠️ 旧版 luci-app-qmodem 与 -next 不能同时安装，只能二选一
+# ------------------------------------------------------------------------------
+CONFIG_PACKAGE_qmodem=y
+CONFIG_PACKAGE_luci-app-qmodem-next=y
+#CONFIG_PACKAGE_luci-app-qmodem=y        # 旧版界面，默认不用
+
+# 可选：QModem 附带功能，按需取消注释
+#CONFIG_PACKAGE_luci-app-qmodem-sms=y
+#CONFIG_PACKAGE_luci-app-qmodem-mwan=y
+#CONFIG_PACKAGE_luci-app-qmodem-monitor=y
+#CONFIG_PACKAGE_luci-app-qmodem-ttl=y
+
+# ------------------------------------------------------------------------------
+# B2. QModem 自带的 Kconfig 选项（来自 application/qmodem/Makefile）
+#
+# ⚠️ qmodem 包的 DEPENDS 里默认选的是 vendor-qmi-wwan，会引入厂商驱动
+#    kmod-qmi_wwan_q / _f / _s（QModem 的 driver/ 目录，第三方内核模块）。
+#    在内核 6.18.55 上这些驱动有编译失败风险。内核自带的通用
+#    kmod-usb-net-qmi-wwan 已在 C3 显式启用，通常够用。
+#    若厂商驱动报错，请改用 Scripts/PRIVATE.sh 里的「兜底 B」把默认改成 generic。
+#
+#    用户态拨号工具（jq / bc / xxd / terminfo / usbutils / coreutils /
+#    ubus-at-daemon / tom_modem / sms-tool_q / modem_scan 等）由 qmodem 的
+#    DEPENDS 自动带入，不需要在这里手写。
+# ------------------------------------------------------------------------------
+# 若是 PCIe/MHI 5G 模组（非 USB），打开 PCIe 支持后才会带 MHI 驱动：
+#CONFIG_PACKAGE_qmodem_INCLUDE_ADD_PCI_SUPPORT=y
+
+# ------------------------------------------------------------------------------
+# C. USB 模组驱动 —— 以下包名均已对上游 pbs05/ponwrt master 的
+#    package/kernel/linux/modules/usb.mk 核对过，确实存在
+#    覆盖 USB 主机控制器 + 模组 AT 串口 + QMI/MBIM/NCM/RNDIS 数据通道
+# ------------------------------------------------------------------------------
+
+# C1. USB 主机控制器（与仓库自带 Config/TEST.txt 第 57-80 行一致）
+CONFIG_PACKAGE_kmod-usb-core=y
+CONFIG_PACKAGE_kmod-usb3=y
+CONFIG_PACKAGE_kmod-usb-xhci=y
+CONFIG_PACKAGE_kmod-usb-ohci=y
+CONFIG_PACKAGE_kmod-usb-uhci=y
+CONFIG_PACKAGE_kmod-usb-dwc3=y
+
+# C2. 模组 AT 串口 / USB 串口（qmodem 靠这些口发 AT 指令）
+CONFIG_PACKAGE_kmod-usb-serial=y
+CONFIG_PACKAGE_kmod-usb-serial-wwan=y
+CONFIG_PACKAGE_kmod-usb-serial-option=y
+CONFIG_PACKAGE_kmod-usb-serial-qualcomm=y
+CONFIG_PACKAGE_kmod-usb-serial-sierrawireless=y
+CONFIG_PACKAGE_kmod-usb-acm=y
+CONFIG_PACKAGE_kmod-usb-wdm=y
+
+# C3. 模组拨号数据通道 —— 全协议覆盖
+#     QMI / MBIM / NCM / RNDIS / ECM / EEM / CDC Subset 及厂商变体全部启用
+#     包名均已对上游 pbs05/ponwrt 的 usb.mk 逐个核对
+CONFIG_PACKAGE_kmod-usb-net=y
+# QMI
+CONFIG_PACKAGE_kmod-usb-net-qmi-wwan=y
+# MBIM
+CONFIG_PACKAGE_kmod-usb-net-cdc-mbim=y
+# NCM（含华为变体）
+CONFIG_PACKAGE_kmod-usb-net-cdc-ncm=y
+CONFIG_PACKAGE_kmod-usb-net-huawei-cdc-ncm=y
+# RNDIS
+CONFIG_PACKAGE_kmod-usb-net-rndis=y
+# ECM / EEM / CDC Subset
+CONFIG_PACKAGE_kmod-usb-net-cdc-ether=y
+CONFIG_PACKAGE_kmod-usb-net-cdc-eem=y
+CONFIG_PACKAGE_kmod-usb-net-cdc-subset=y
+# Sierra / Option HSO 等厂商或老式模组协议
+CONFIG_PACKAGE_kmod-usb-net-sierrawireless=y
+CONFIG_PACKAGE_kmod-usb-net-hso=y
+
+# ------------------------------------------------------------------------------
+# D. 可选扩展 —— 默认注释。光猫 flash 有限，不要一次性全开
+#    （GENERAL.txt 已内置 usb-modeswitch / usbutils / usbmuxd / blkid 等工具）
+# ------------------------------------------------------------------------------
+
+# D1. USB 存储（U 盘 / 移动硬盘）
+#CONFIG_PACKAGE_kmod-usb-storage=y
+#CONFIG_PACKAGE_kmod-usb-storage-extras=y
+#CONFIG_PACKAGE_kmod-usb-storage-uas=y
+
+# D2. USB 有线网卡芯片（纯网卡，非蜂窝模组；C3 已覆盖模组协议）
+#CONFIG_PACKAGE_kmod-usb-net-asix=y
+#CONFIG_PACKAGE_kmod-usb-net-asix-ax88179=y
+#CONFIG_PACKAGE_kmod-usb-net-rtl8152=y
+#CONFIG_PACKAGE_kmod-usb-net-rtl8150=y
+#CONFIG_PACKAGE_kmod-usb-net-kalmia=y
+
+# D3. 其它 USB 转串口芯片（USB 转 TTL 调试线常用）
+#CONFIG_PACKAGE_kmod-usb-serial-ch341=y
+#CONFIG_PACKAGE_kmod-usb-serial-cp210x=y
+#CONFIG_PACKAGE_kmod-usb-serial-ftdi=y
+#CONFIG_PACKAGE_kmod-usb-serial-pl2303=y
+
+# D4. 其它
+#CONFIG_PACKAGE_kmod-usb-audio=y
+#CONFIG_PACKAGE_kmod-usb-net-ipheth=y
+
+# ------------------------------------------------------------------------------
+# E. 上一版「代理 / DNS 组合」—— 本次未指定，先注释保留，需要时取消注释
+#    源码都已在 Packages.sh 里，不需要额外拉包
+# ------------------------------------------------------------------------------
+#CONFIG_PACKAGE_sing-box=y
+#CONFIG_PACKAGE_luci-app-lucky=y
+#CONFIG_PACKAGE_luci-app-ddns-go=y
+
+# ------------------------------------------------------------------------------
+# F. 自定义区 —— 你自己的插件写这里
+# ------------------------------------------------------------------------------
+#CONFIG_PACKAGE_luci-app-xxx=y
