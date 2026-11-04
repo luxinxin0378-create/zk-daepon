@@ -1,0 +1,71 @@
+zk-daepon / AIR-ONU 手动运行 PACKAGE 输入框速查
+================================================================
+本次需求：OpenClash + QModem + USB/4G/5G 全协议模组驱动
+
+【用法】复制下面「一行」字符串，粘贴到
+  GitHub → Actions → AIR-ONU → Run workflow → PACKAGE 输入框
+
+【重要】
+1. 输入框里的分隔符是「字面量 \n」两个字符，不是真换行。
+   Settings.sh 第 71 行用 echo -e 把它还原成换行后追加到 .config。
+2. Config/PRIVATE.txt 已经把三块需求全部配好了，正式编译时这里请留空。
+   两边写同一项会重复追加，排查问题时容易混淆。
+3. 这里追加的内容在 PRIVATE.txt 之后写入 .config，冲突时以输入框为准，
+   适合临时开关单个插件 / 驱动做对比测试。
+4. 输入框只影响本次运行，不会改仓库文件。
+
+----------------------------------------------------------------
+【推荐：留空】
+正式编译时 PACKAGE 不填，TEST 不勾。
+
+----------------------------------------------------------------
+【临时只验证两个插件（不改动仓库配置）】
+
+CONFIG_PACKAGE_luci-app-openclash=y\nCONFIG_PACKAGE_qmodem=y\nCONFIG_PACKAGE_luci-app-qmodem-next=y
+
+----------------------------------------------------------------
+【临时关掉某个插件做对比（=n 覆盖 PRIVATE.txt 里的 =y）】
+
+CONFIG_PACKAGE_luci-app-openclash=n
+
+----------------------------------------------------------------
+【临时追加一组协议驱动做验证】
+
+CONFIG_PACKAGE_kmod-usb-net-qmi-wwan=y\nCONFIG_PACKAGE_kmod-usb-net-cdc-mbim=y\nCONFIG_PACKAGE_kmod-usb-wdm=y
+
+----------------------------------------------------------------
+【TEST 开关 —— 本次尤其重要】
+
+首次运行务必把 TEST 勾成 true：
+  - 不执行 make download / make，只走完 make defconfig
+  - 仍会发布 Release，附件里有 Config-*.txt（最终的 .config）
+  - 下载后逐个搜索以下关键符号，确认都还在且为 =y：
+
+    CONFIG_PACKAGE_luci-app-openclash
+    CONFIG_PACKAGE_qmodem
+    CONFIG_PACKAGE_luci-app-qmodem-next
+    CONFIG_PACKAGE_kmod-usb-serial-option
+    CONFIG_PACKAGE_kmod-usb-wdm
+    CONFIG_PACKAGE_kmod-usb-xhci
+    CONFIG_PACKAGE_kmod-usb-net-qmi-wwan
+    CONFIG_PACKAGE_kmod-usb-net-cdc-mbim
+    CONFIG_PACKAGE_kmod-usb-net-cdc-ncm
+    CONFIG_PACKAGE_kmod-usb-net-rndis
+    CONFIG_PACKAGE_kmod-usb-net-cdc-ether
+    CONFIG_PACKAGE_kmod-usb-net-cdc-eem
+    CONFIG_PACKAGE_kmod-usb-net-huawei-cdc-ncm
+
+  - 搜不到 = 包名不存在或源码没被扫描到，defconfig 已静默丢弃
+  - 搜到但被依赖拉成 =m 或没进 manifest = 依赖不满足，看 Actions 日志
+
+这次共新增 24 个 USB 内核模块，TEST 能一次性确认它们在
+airoha/an7581 + 内核 6.18.55 下是否都可用。
+
+另外顺手检查 QModem 的 QMI 驱动选择：
+  - 若 CONFIG_PACKAGE_qmodem_INCLUDE_vendor-qmi-wwan=y，
+    说明会拉入厂商驱动 kmod-qmi_wwan_q/_f/_s，6.18 上有编译风险；
+    此时请启用 Scripts/PRIVATE.sh 里的「兜底 B」改成 generic。
+  - 若 CONFIG_PACKAGE_qmodem_INCLUDE_generic-qmi-wwan=y，则用的是
+    内核通用 qmi_wwan，最稳妥。
+
+验证通过后再把 TEST 留空（false）跑正式编译。
