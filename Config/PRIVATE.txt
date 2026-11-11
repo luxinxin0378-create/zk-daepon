@@ -140,3 +140,30 @@ CONFIG_PACKAGE_kmod-usb-net-hso=y
 # F. 自定义区 —— 你自己的插件写这里
 # ------------------------------------------------------------------------------
 #CONFIG_PACKAGE_luci-app-xxx=y
+# ==============================================================================
+# === CUSTOM-ONU2 BEGIN ===  双机型定制插件
+# 说明：Settings.sh 会在 make defconfig 之前把本文件追加到 .config
+# ==============================================================================
+
+# OpenClash 内置 Meta(mihomo) 核心：编译期按目标架构下载并装进固件
+CONFIG_LUCI_APP_OPENCLASH_INCLUDE_CORE=y
+
+# PassWall + 内置 Xray 核心
+CONFIG_PACKAGE_luci-app-passwall=y
+CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y
+CONFIG_PACKAGE_luci-app-passwall_Nftables_Transparent_Proxy=y
+CONFIG_PACKAGE_xray-core=y
+CONFIG_PACKAGE_unzip=y
+
+# CPU 频率调节（immortalwrt/luci 官方 feed）
+CONFIG_PACKAGE_luci-app-cpufreq=y
+CONFIG_PACKAGE_cpufreq=y
+
+# naoki66 ONU 用户态 + NPU 状态插件
+CONFIG_PACKAGE_luci-app-onu=y
+CONFIG_PACKAGE_luci-app-pon-status=y
+CONFIG_PACKAGE_luci-app-airoha-npu=y
+CONFIG_PACKAGE_airoha-pond=y
+CONFIG_PACKAGE_airoha-ponctl=y
+CONFIG_PACKAGE_airoha-pon-debug=y
+# === CUSTOM-ONU2 END ===
