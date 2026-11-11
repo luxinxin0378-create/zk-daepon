@@ -98,3 +98,39 @@ fi
 sed -i 's/ucidef_set_interface_lan "lan1 lan2 lan3 lan4"/ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "lan4"/g' target/linux/airoha/an7581/base-files/etc/board.d/02_network
 sed -i 's/interrupts.*//g' target/linux/airoha/dts/an7581-nokia_xg-040g-md-common.dtsi
 
+# ==============================================================================
+# === CUSTOM-ONU2 BEGIN ===  定制：root 密码 / LAN IP / WiFi
+# ==============================================================================
+if [ "$WRT_CONFIG" = "CUSTOM-ONU2" ]; then
+	# 1) 编译期写入 root 密码（md5-crypt of "root"）
+	SHADOW="./package/base-files/files/etc/shadow"
+	if [ -f "$SHADOW" ]; then
+		sed -i 's|^root:[^:]*:|root:$1$WrT2026$TS7rClERv7a4V0C9vdJc4/:|' "$SHADOW"
+		echo "[CUSTOM-ONU2] root password -> root (shadow)"
+	else
+		echo "[CUSTOM-ONU2] WARN: $SHADOW not found"
+	fi
+
+	# 2) 首次启动兜底：LAN IP / root 密码 / WiFi 名称与密码
+	mkdir -p ./files/etc/uci-defaults
+	cat > ./files/etc/uci-defaults/99-custom-init <<'CUSTOM_EOF'
+#!/bin/sh
+# LAN IP
+uci -q set network.lan.ipaddr='192.168.2.1'
+uci -q commit network
+# root 密码
+(echo 'root'; sleep 1; echo 'root') | passwd root >/dev/null 2>&1
+# WiFi：仅在设备确实有无线时设置（HG5585F-CT 有，XG-040G-MD 无）
+if uci -q get wireless.@wifi-device[0] >/dev/null; then
+	uci -q set wireless.@wifi-device[0].disabled='0'
+	uci -q set wireless.@wifi-iface[0].ssid='HG5585F-CT'
+	uci -q set wireless.@wifi-iface[0].key='88888888'
+	uci -q set wireless.@wifi-iface[0].encryption='psk2+ccmp'
+	uci -q commit wireless
+fi
+exit 0
+CUSTOM_EOF
+	chmod +x ./files/etc/uci-defaults/99-custom-init
+	echo "[CUSTOM-ONU2] uci-defaults 99-custom-init written"
+fi
+# === CUSTOM-ONU2 END ===
