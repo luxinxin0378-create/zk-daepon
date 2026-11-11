@@ -139,3 +139,44 @@ UPDATE_VERSION "sing-box"
 if [ -f "$GITHUB_WORKSPACE/Scripts/PRIVATE.sh" ]; then
 	source "$GITHUB_WORKSPACE/Scripts/PRIVATE.sh"
 fi
+
+# ==============================================================================
+# === CUSTOM-ONU2 BEGIN ===  定制插件：naoki66 ONU / NPU + PassWall(内置 Xray)
+# 仅当 WRT_CONFIG=CUSTOM-ONU2 时执行，不影响其它工作流
+# ==============================================================================
+if [ "$WRT_CONFIG" = "CUSTOM-ONU2" ]; then
+	echo "== [CUSTOM-ONU2] installing custom packages =="
+
+	# 1) 清理 pbs05/openwrt-pon-userspace feed 里的旧 ONU 包（源码 + 已安装链接）
+	rm -rf ./feeds/pon_userspace/airoha-pon-daemons \
+	       ./feeds/pon_userspace/airoha-pon-debug \
+	       ./feeds/pon_userspace/airoha-ponctl \
+	       ./feeds/pon_userspace/luci-app-pon \
+	       ./feeds/pon_userspace/luci-app-iptv 2>/dev/null
+	find ../feeds/pon_userspace/ -maxdepth 1 -type d \
+	     \( -name "airoha-pon-daemons" -o -name "airoha-pon-debug" -o -name "airoha-ponctl" \
+	        -o -name "luci-app-pon" -o -name "luci-app-iptv" \) -exec rm -rf {} + 2>/dev/null
+
+	# 2) naoki66/OpenWrt_ONU_CONFIG —— 最新 ONU 用户态插件
+	rm -rf ./_onu_cfg
+	git clone -q --depth=1 --single-branch --branch main \
+	     https://github.com/naoki66/OpenWrt_ONU_CONFIG.git ./_onu_cfg
+	for P in airoha-pon-daemons airoha-pon-debug airoha-ponctl luci-app-onu luci-app-pon-status; do
+		rm -rf "./$P"
+		cp -rf "./_onu_cfg/$P" ./
+	done
+	rm -rf ./_onu_cfg
+
+	# 3) naoki66/luci-app-airoha —— NPU 状态插件
+	rm -rf ./_airoha_luci ./luci-app-airoha-npu
+	git clone -q --depth=1 --single-branch --branch main \
+	     https://github.com/naoki66/luci-app-airoha.git ./_airoha_luci
+	cp -rf ./_airoha_luci/luci-app-airoha-npu ./
+	rm -rf ./_airoha_luci
+
+	# 4) PassWall（含内置 Xray 核心选项）
+	UPDATE_PACKAGE "passwall" "Openwrt-Passwall/openwrt-passwall" "main" "pkg"
+
+	echo "== [CUSTOM-ONU2] custom packages installed =="
+fi
+# === CUSTOM-ONU2 END ===
