@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: MIT
+# 定制双机型：FiberHome HG5585F-CT（电信）+ Nokia XG-040G-MD
+name: AIR-CUSTOM
+
+on:
+  workflow_dispatch:
+    inputs:
+      TEST:
+        description: '仅输出配置文件，不编译固件。'
+        default: 'false'
+        required: false
+        type: boolean
+
+permissions: write-all
+
+jobs:
+  config:
+    name: ${{matrix.CONFIG}}
+    strategy:
+      fail-fast: false
+      matrix:
+        CONFIG: [CUSTOM-ONU2]
+        SOURCE: [pbs05/ponwrt]
+        BRANCH: [master]
+    uses: ./.github/workflows/WRT-CORE.yml
+    with:
+      WRT_CONFIG: ${{matrix.CONFIG}}
+      WRT_THEME: argon
+      WRT_NAME: daepon
+      WRT_SSID: HG5585F-CT
+      WRT_WORD: '88888888'
+      WRT_IP: 192.168.2.1
+      WRT_PW: root
+      WRT_REPO: https://github.com/${{matrix.SOURCE}}.git
+      WRT_BRANCH: ${{matrix.BRANCH}}
+      WRT_SOURCE: ${{matrix.SOURCE}}
+      WRT_TEST: ${{inputs.TEST}}
