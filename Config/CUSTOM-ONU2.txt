@@ -1,0 +1,46 @@
+#
+# Custom build: FiberHome HG5585F-CT (China Telecom) + Nokia XG-040G-MD
+# Source: pbs05/ponwrt (ImmortalWrt, airoha/an7581)
+#
+# Target Devices
+#
+CONFIG_TARGET_airoha=y
+CONFIG_TARGET_airoha_an7581=y
+CONFIG_TARGET_DEVICE_airoha_an7581_DEVICE_fiberhome_hg5585f-ct=y
+CONFIG_TARGET_DEVICE_airoha_an7581_DEVICE_nokia_xg-040g-md-ubi=y
+#
+# NPU (firmware + naoki66/luci-app-airoha-npu)
+#
+CONFIG_KERNEL_DEVMEM=y
+CONFIG_BUSYBOX_CUSTOM=y
+CONFIG_BUSYBOX_CONFIG_DEVMEM=y
+CONFIG_PACKAGE_kmod-dummy=y
+CONFIG_PACKAGE_airoha-en7581-npu-firmware=y
+CONFIG_PACKAGE_airoha-en7581-mt7996-npu-firmware=y
+CONFIG_PACKAGE_airoha-en8811h-firmware=y
+CONFIG_PACKAGE_luci-app-airoha-npu=y
+CONFIG_PACKAGE_vlmcsd=n
+#
+# PON / ONU (naoki66/OpenWrt_ONU_CONFIG)
+#
+CONFIG_MODULE_DEFAULT_kmod-airoha-en7572=y
+CONFIG_MODULE_DEFAULT_kmod-airoha-paged-bosa=y
+CONFIG_MODULE_DEFAULT_kmod-airoha-xpon=y
+CONFIG_PACKAGE_kmod-airoha-en7572=m
+CONFIG_PACKAGE_kmod-airoha-paged-bosa=m
+CONFIG_PACKAGE_kmod-airoha-pon-frontend=y
+CONFIG_PACKAGE_kmod-airoha-xpon=y
+CONFIG_PACKAGE_airoha-pon-debug=y
+CONFIG_PACKAGE_airoha-ponctl=y
+CONFIG_PACKAGE_airoha-pond=y
+CONFIG_PACKAGE_luci-app-onu=y
+CONFIG_PACKAGE_luci-app-pon-status=y
+#
+# 透明代理依赖
+#
+CONFIG_PACKAGE_ip-full=y
+CONFIG_PACKAGE_kmod-nft-queue=y
+CONFIG_PACKAGE_jshn=y
+CONFIG_PACKAGE_sqlite3-cli=y
+CONFIG_PACKAGE_usign=y
+CONFIG_PACKAGE_coreutils-stat=y
